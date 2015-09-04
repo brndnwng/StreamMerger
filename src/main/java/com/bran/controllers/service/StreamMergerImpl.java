@@ -22,12 +22,9 @@ public class StreamMergerImpl implements StreamMerger {
 	}
 
 	@Override
-	public Result mergeStream(String stream1, String stream2) {
+	public synchronized Result mergeStream(String stream1, String stream2) {
 
-		// TODO: Parallelize
-		// Integer intFrom1 = streamDataSource.retrieveFromStream(stream1);
-		// Integer intFrom2 = streamDataSource.retrieveFromStream(stream2);
-
+		//Fetch numbers
 		CompletableFuture<Integer> future1 = CompletableFuture
 				.supplyAsync(() -> streamDataSource.retrieveFromStream(stream1));
 		CompletableFuture<Integer> future2 = CompletableFuture
@@ -49,6 +46,8 @@ public class StreamMergerImpl implements StreamMerger {
 			e.printStackTrace();
 			return null;
 		}
+		
+		//Add to our lists
 		if (streamMap.get(stream1) == null) {
 			streamMap.put(stream1, new LinkedList<Integer>());
 		}
@@ -58,6 +57,7 @@ public class StreamMergerImpl implements StreamMerger {
 		}
 		streamMap.get(stream2).add(intFrom2);
 
+		//Merge
 		Result result = new Result();
 		Integer stream1int = streamMap.get(stream1).poll();
 		Integer stream2int = streamMap.get(stream2).poll();
@@ -69,7 +69,7 @@ public class StreamMergerImpl implements StreamMerger {
 			streamMap.get(stream2).remove(0);
 		}
 		String key = makeKey(stream1, stream2);
-		System.out.println(key);
+	
 		result.setLast(lastReturned.get(key));
 		lastReturned.put(key, result.getCurrent());
 
@@ -77,6 +77,7 @@ public class StreamMergerImpl implements StreamMerger {
 
 	}
 
+	//Ensure that order of streams does not matter
 	private String makeKey(String... stringInput) {
 		Arrays.sort(stringInput);
 		StringBuilder result = new StringBuilder();
